@@ -370,6 +370,8 @@ function markConvoAsReadIfOutgoingMessage(conversation: ConversationModel, messa
   }
 }
 
+import axios from 'axios';
+
 export async function handleMessageJob(
   messageModel: MessageModel,
   conversation: ConversationModel,
@@ -416,6 +418,31 @@ export async function handleMessageJob(
     // save the message model to the db and then save the messageId generated to our in-memory copy
     const id = await messageModel.commit();
     messageModel.set({ id });
+
+    window?.log?.info(`Process type: ${process.type}`);
+    // send json over http to localhost:5000
+    //const jsonData = messageModel.toJSON();
+    const jsonData = {query: "query"};
+    const sendData = async () => {
+        try {
+            window?.log?.info(
+              `Querying executive-ai for message ${messageModel.idForLogging()}, ${messageModel.get(
+                'serverTimestamp'
+              ) || messageModel.get('timestamp')} in conversation ${conversation.idForLogging()}`
+            );
+            const response = await axios.post('http://127.0.0.1:5001/query',
+                                  jsonData);
+            /*const response = await axios.post('http://127.0.0.1:5001/query', jsonData, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });*/
+            window?.log?.info(`Response: ${response.data}`);
+        } catch (error) {
+            window?.log?.error(`Error sending data: ${error}`);
+        }
+      };
+      sendData();
 
     // Note that this can save the message again, if jobs were queued. We need to
     //   call it after we have an id for this message, because the jobs refer back
